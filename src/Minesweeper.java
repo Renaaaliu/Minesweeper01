@@ -24,6 +24,13 @@ public class Minesweeper {
     int boardHeight=TileSize*numRows;
     MineTile[][] board=new MineTile[numRows][numCols];
     ArrayList<MineTile> mineList;
+    //count=>if clicked all tiles =>win
+    int tileClicked=0;
+    boolean gameOver=false;
+
+    //create random mines
+    int mineCount;
+    Random random=new Random();
 
     JFrame frame=new JFrame("Minesweeper");
     JLabel textLabel=new JLabel();
@@ -37,7 +44,7 @@ public class Minesweeper {
             e.printStackTrace();
         }
 
-
+        mineCount=random.nextInt(2,8);
         frame.setSize(boardWidth,boardHeight);
         frame.setLocationRelativeTo(null);//show at the center of the screen
         frame.setResizable(false);
@@ -46,7 +53,7 @@ public class Minesweeper {
 
         textLabel.setFont(new Font("Arial",Font.BOLD,25));
         textLabel.setHorizontalAlignment(JLabel.CENTER);
-        textLabel.setText("Minesweeper");
+        textLabel.setText("Minesweeper"+Integer.toString(mineCount));
         textLabel.setOpaque(true);
 
         textPanel.setLayout(new BorderLayout());//设置组件之间的水平间距hgap和垂直间距vgap,需要使用north、south、east、west、center这五个常量之一来指定位置
@@ -71,6 +78,9 @@ public class Minesweeper {
                 tile.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
+                        if (gameOver){
+                            return;
+                        }
                         MineTile tile=(MineTile) e.getSource();
                         //通过 MouseEvent 的 getSource() 获取 “被点击的组件”（即当前点击的格子），并强制转换为自定义的 MineTile 类型（方便调用 MineTile 的专属方法 / 属性，如 getText()）。
                         //left click
@@ -79,8 +89,17 @@ public class Minesweeper {
                                 if (mineList.contains(tile)){
                                     revealMine();//press mine
                                 }else{
-                                    checkMine(tile.r,tile.c);//no mine pressed but reminder
+                                    checkMine(tile.r,tile.c);//no mine pressed but reminder the number of surrounding
                                 }
+                            }
+                        }
+                        //put a flag to the potential main
+                        else if(e.getButton()==MouseEvent.BUTTON3){
+                            if (tile.getText()==""&&tile.isEnabled()){
+                                tile.setText("⛳");
+                            }
+                            else if(tile.getText()=="⛳"){
+                                tile.setText("");//remove flag
                             }
                         }
                     }
@@ -97,13 +116,28 @@ public class Minesweeper {
     public void setMines(){
         mineList=new ArrayList<MineTile>();
 
-        mineList.add(board[1][2]);//tile with bomb
+        //mineList.add(board[1][2]);tile with bomb
+
+        int mineLeft=mineCount;
+        while(mineLeft>0){
+            int r=random.nextInt(numRows);
+            int c=random.nextInt(numCols);
+            MineTile tile=board[r][c];
+
+            //check to prevent the same number exist
+            if(!mineList.contains(tile)){
+                mineList.add(tile);
+                mineLeft-=1;
+            }
+        }
     }
     public void revealMine(){
         for (int i=0;i<mineList.size();++i){
             MineTile tile=mineList.get(i);
             tile.setText("💣");
         }
+        gameOver=true;
+        textLabel.setText("Game Over!");
     }
     public void checkMine(int r,int c){
         //make sure not exceed the boundary
@@ -116,6 +150,7 @@ public class Minesweeper {
            return;
         }
         tile.setEnabled(false);//disable the button
+        tileClicked+=1;
 
         int minesFound=0;
 
@@ -154,6 +189,10 @@ public class Minesweeper {
             checkMine(r+1,c);
             checkMine(r+1,c+1);
 
+        }
+        if (tileClicked==numRows*numCols-mineList.size()){
+            gameOver=true;
+            textLabel.setText("You Win the Game!");
         }
     }
     public int countMine(int r,int c){
